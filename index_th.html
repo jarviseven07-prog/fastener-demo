@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Precision Fasteners · Interactive Display</title>
+<style>
+  /* ============================================================
+     全局样式 —— 工业科技感 / 深色高级 / 大屏展示
+     模型可见性靠"强光照+高金属材质",不靠浅背景
+     ============================================================ */
+  :root{
+    --bg-top:#101826;
+    --bg-bottom:#05080d;
+    --accent:#36c9d8;      /* 青 */
+    --accent-2:#d9a93a;    /* 暖金 */
+    --text:#e9eef5;
+    --text-dim:#8294aa;
+    --panel:rgba(13,20,32,.62);
+    --line:rgba(54,201,216,.22);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{width:100%;height:100%;overflow:hidden;
+    background:radial-gradient(ellipse at 50% 30%, var(--bg-top) 0%, var(--bg-bottom) 78%);
+    font-family:"Leelawadee UI","Segoe UI","Tahoma","PingFang SC","Microsoft YaHei",sans-serif;color:var(--text);}
+  #scene{position:fixed;inset:0;z-index:1;}
+
+  /* —— 顶部:品类标题 + 当前产品 —— */
+  .hud-top{position:fixed;top:0;left:0;width:100%;z-index:10;padding:30px 46px;
+    display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;}
+  .brand .t1{font-size:28px;font-weight:600;letter-spacing:3px;}
+  .brand .t2{font-size:12px;color:var(--text-dim);letter-spacing:7px;margin-top:6px;text-transform:uppercase;}
+  .product{text-align:right;}
+  .product .idx{font-size:12px;color:var(--accent);letter-spacing:3px;margin-bottom:4px;}
+  .product .pn{font-size:25px;font-weight:600;letter-spacing:1px;}
+  .product .pd{font-size:13px;color:var(--text-dim);margin-top:5px;}
+
+  /* —— 左下:状态面板 —— */
+  .hud-status{position:fixed;left:46px;bottom:44px;z-index:10;
+    display:flex;flex-direction:column;gap:12px;pointer-events:none;
+    padding:18px 22px;border-radius:12px;background:var(--panel);
+    backdrop-filter:blur(10px);border:1px solid var(--line);}
+  .stat-row{display:flex;align-items:center;gap:11px;font-size:13px;}
+  .stat-dot{width:9px;height:9px;border-radius:50%;background:#3a4a5e;transition:all .25s;}
+  .stat-dot.on{background:var(--accent);box-shadow:0 0 10px var(--accent);}
+  .stat-label{color:var(--text-dim);min-width:64px;letter-spacing:1px;}
+  .stat-val{color:var(--text);font-variant-numeric:tabular-nums;min-width:58px;}
+
+  /* —— 底部中央:手势引导 —— */
+  .hud-guide{position:fixed;bottom:44px;left:50%;transform:translateX(-50%);z-index:10;
+    display:flex;gap:30px;padding:15px 30px;border-radius:13px;
+    background:var(--panel);backdrop-filter:blur(10px);
+    border:1px solid var(--line);pointer-events:none;}
+  .guide-item{text-align:center;min-width:64px;}
+  .guide-item .gi-icon{font-size:22px;margin-bottom:5px;}
+  .guide-item .gi-txt{font-size:11px;color:var(--text-dim);letter-spacing:1px;}
+
+  /* —— 右下:摄像头小窗 —— */
+  #cam-wrap{position:fixed;right:22px;bottom:22px;width:192px;height:144px;z-index:20;
+    border:1px solid var(--line);border-radius:10px;overflow:hidden;
+    background:#000;box-shadow:0 8px 36px rgba(0,0,0,.55);}
+  #cam{width:100%;height:100%;object-fit:cover;transform:scaleX(-1);opacity:.85;}
+  #cam-overlay{position:absolute;inset:0;transform:scaleX(-1);}
+  .cam-label{position:absolute;top:6px;left:8px;font-size:10px;color:var(--accent);
+    letter-spacing:1px;z-index:2;text-shadow:0 0 6px rgba(0,0,0,.8);}
+
+  /* —— 中央提示大字 —— */
+  #big-state{position:fixed;top:14%;left:50%;transform:translateX(-50%);
+    z-index:9;font-size:54px;font-weight:700;letter-spacing:8px;color:var(--accent);
+    opacity:0;transition:opacity .35s;pointer-events:none;
+    text-shadow:0 0 36px rgba(54,201,216,.55);}
+  #big-state.show{opacity:.92;}
+
+  /* —— 自动演示角标 —— */
+  #auto-badge{position:fixed;top:30px;left:50%;transform:translateX(-50%);z-index:10;
+    padding:7px 20px;border-radius:99px;font-size:12px;letter-spacing:3px;
+    color:var(--accent-2);border:1px solid rgba(217,169,58,.35);background:rgba(20,16,6,.5);
+    opacity:0;transition:opacity .4s;pointer-events:none;}
+  #auto-badge.show{opacity:1;}
+
+  /* —— 启动层 —— */
+  #boot{position:fixed;inset:0;z-index:100;
+    background:radial-gradient(ellipse at 50% 30%, var(--bg-top) 0%, var(--bg-bottom) 78%);
+    display:flex;flex-direction:column;justify-content:center;align-items:center;gap:26px;}
+
+  /* —— 卫星名称标签(选择页,跟随产品) —— */
+  .sat-label{position:fixed;z-index:7;pointer-events:none;transform:translate(-50%,0);
+    font-size:13px;letter-spacing:2px;color:var(--text-dim);text-align:center;
+    transition:color .25s,opacity .3s;white-space:nowrap;
+    text-shadow:0 2px 10px rgba(0,0,0,.8);}
+  .sat-label.hot{color:var(--accent);text-shadow:0 0 14px rgba(54,201,216,.6);}
+
+  /* —— 手光标(选择页) —— */
+  #hand-cursor{position:fixed;width:26px;height:26px;z-index:15;pointer-events:none;
+    border:2px solid var(--accent);border-radius:50%;opacity:0;transition:opacity .2s;
+    box-shadow:0 0 14px rgba(54,201,216,.6);transform:translate(-50%,-50%);}
+  #hand-cursor .hc-fill{position:absolute;inset:3px;border-radius:50%;
+    background:var(--accent);transform:scale(0);transition:transform .1s linear;}
+
+  /* —— 顶部返回热区(详情页) —— */
+  #edge-top{position:fixed;top:0;left:0;width:100%;height:9px;z-index:8;pointer-events:none;
+    opacity:0;transition:opacity .2s;
+    background:linear-gradient(180deg,rgba(217,169,58,.5),transparent);}
+  #edge-top .edge-fill{position:absolute;left:0;top:0;height:100%;width:0%;
+    background:var(--accent-2);box-shadow:0 0 16px var(--accent-2);}
+  #edge-top .edge-label{position:absolute;top:16px;left:50%;transform:translateX(-50%);
+    font-size:13px;letter-spacing:3px;color:var(--accent-2);}
+
+  /* —— 选择页标题 —— */
+  #select-title{position:fixed;top:18%;left:50%;transform:translateX(-50%);z-index:9;
+    text-align:center;pointer-events:none;transition:opacity .4s;}
+  #select-title .st1{font-size:22px;letter-spacing:6px;color:var(--text);}
+  #select-title .st2{font-size:12px;letter-spacing:3px;color:var(--text-dim);margin-top:8px;}
+
+  /* —— 边缘切换热区指示(左右两条) —— */
+  .edge-zone{position:fixed;top:0;height:100%;width:9px;z-index:8;pointer-events:none;
+    opacity:0;transition:opacity .2s;}
+  .edge-zone.left{left:0;background:linear-gradient(90deg,rgba(54,201,216,.45),transparent);}
+  .edge-zone.right{right:0;background:linear-gradient(-90deg,rgba(54,201,216,.45),transparent);}
+  .edge-zone .edge-fill{position:absolute;bottom:0;width:100%;height:0%;
+    background:var(--accent);box-shadow:0 0 18px var(--accent);}
+  .edge-zone .edge-arrow{position:absolute;top:50%;transform:translateY(-50%);
+    font-size:30px;color:var(--accent);text-shadow:0 0 14px var(--accent);}
+  .edge-zone.left .edge-arrow{left:16px;}
+  .edge-zone.right .edge-arrow{right:16px;}
+
+  /* —— 握拳保持进度环(中央) —— */
+  #fist-ring{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:9;
+    width:96px;height:96px;pointer-events:none;opacity:0;transition:opacity .15s;}
+  #fist-ring.show{opacity:1;}
+  #fist-ring svg{transform:rotate(-90deg);}
+  #fist-ring .ring-bg{fill:none;stroke:rgba(255,255,255,.12);stroke-width:6;}
+  #fist-ring .ring-fg{fill:none;stroke:var(--accent-2);stroke-width:6;stroke-linecap:round;
+    filter:drop-shadow(0 0 8px var(--accent-2));}
+  #fist-ring .ring-icon{position:absolute;inset:0;display:flex;align-items:center;
+    justify-content:center;font-size:30px;}
+  #boot h1{font-size:32px;font-weight:600;letter-spacing:4px;}
+  #boot p{color:var(--text-dim);font-size:14px;max-width:560px;text-align:center;line-height:1.9;}
+  #boot button{padding:15px 46px;font-size:16px;letter-spacing:2px;cursor:pointer;
+    background:linear-gradient(135deg,var(--accent),#1d96a6);color:#06262a;border:none;
+    border-radius:10px;font-weight:700;transition:transform .15s;}
+  #boot button:hover{transform:translateY(-2px);}
+  #boot .boot-status{font-size:13px;color:var(--accent);min-height:20px;}
+  .kbd{display:inline-block;padding:2px 8px;border:1px solid rgba(255,255,255,.25);
+    border-radius:5px;font-size:12px;color:var(--text);margin:0 2px;}
+</style>
+</head>
+<body>
+
+<div id="scene"></div>
+
+<div class="hud-top">
+  <div class="brand">
+    <!-- 中文原文:精密紧固件 / Precision Fasteners -->
+    <div class="t1">อุปกรณ์ยึดความแม่นยำสูง</div>
+    <div class="t2">Precision Fasteners</div>
+  </div>
+  <div class="product">
+    <div class="idx" id="pn-idx">01 / 05</div>
+    <div class="pn" id="pn-name">—</div>
+    <div class="pd" id="pn-desc">—</div>
+  </div>
+</div>
+
+<!-- 中文原文:AUTO DEMO · 挥手接管控制 -->
+<div id="auto-badge">AUTO DEMO · โบกมือเพื่อควบคุม</div>
+<div id="big-state"></div>
+
+<div class="edge-zone left" id="edge-left">
+  <div class="edge-fill"></div><div class="edge-arrow">‹</div>
+</div>
+<div class="edge-zone right" id="edge-right">
+  <div class="edge-fill"></div><div class="edge-arrow">›</div>
+</div>
+<div id="edge-top">
+  <!-- 中文原文:返回选择 -->
+  <div class="edge-fill"></div><div class="edge-label">กลับไปเลือกสินค้า</div>
+</div>
+<div id="hand-cursor"><div class="hc-fill"></div></div>
+<div id="select-title">
+  <!-- 中文原文:悬停选择产品 / HOVER TO SELECT -->
+  <div class="st1">ชี้ค้างเพื่อเลือกสินค้า</div>
+  <div class="st2">HOVER TO SELECT</div>
+</div>
+
+<div id="fist-ring">
+  <svg width="96" height="96" viewBox="0 0 96 96">
+    <circle class="ring-bg" cx="48" cy="48" r="42"/>
+    <circle class="ring-fg" cx="48" cy="48" r="42" stroke-dasharray="264" stroke-dashoffset="264"/>
+  </svg>
+  <div class="ring-icon">✊</div>
+</div>
+
+<div class="hud-status">
+  <!-- 中文原文:手势识别/等待 缩放 拆解/闭合 状态/运行中 -->
+  <div class="stat-row"><span class="stat-dot" id="dot-hand"></span>
+    <span class="stat-label">ตรวจจับมือ</span><span class="stat-val" id="v-hand">รอ</span></div>
+  <div class="stat-row"><span class="stat-dot" id="dot-zoom"></span>
+    <span class="stat-label">ซูม</span><span class="stat-val" id="v-zoom">0%</span></div>
+  <div class="stat-row"><span class="stat-dot" id="dot-explode"></span>
+    <span class="stat-label">ถอดแยก</span><span class="stat-val" id="v-explode">ประกอบ</span></div>
+  <div class="stat-row"><span class="stat-dot" id="dot-state"></span>
+    <span class="stat-label">สถานะ</span><span class="stat-val" id="v-state">ทำงาน</span></div>
+</div>
+
+<div class="hud-guide" id="guide-select">
+  <!-- 中文原文:移动手·指向产品 / 悬停·进入查看 -->
+  <div class="guide-item"><div class="gi-icon">🖐️</div><div class="gi-txt">ขยับมือ · ชี้ที่สินค้า</div></div>
+  <div class="guide-item"><div class="gi-icon">⏱️</div><div class="gi-txt">ชี้ค้าง · เข้าชม</div></div>
+</div>
+<div class="hud-guide" id="guide-detail" style="display:none">
+  <!-- 中文原文:移动·旋转 / 开合·远近 / 握拳1秒·拆解 / 移到顶部·返回 -->
+  <div class="guide-item"><div class="gi-icon">🖐️</div><div class="gi-txt">ขยับมือ · หมุน</div></div>
+  <div class="guide-item"><div class="gi-icon">🤏</div><div class="gi-txt">หุบ-กาง · ซูม</div></div>
+  <div class="guide-item"><div class="gi-icon">✊</div><div class="gi-txt">กำมือ 1 วินาที · ถอดแยก</div></div>
+  <div class="guide-item"><div class="gi-icon">⬆️</div><div class="gi-txt">เลื่อนขึ้นบน · กลับ</div></div>
+</div>
+
+<div id="cam-wrap">
+  <span class="cam-label">CAMERA</span>
+  <video id="cam" autoplay playsinline muted></video>
+  <canvas id="cam-overlay"></canvas>
+</div>
+
+<div id="boot">
+  <!-- 中文原文:精密紧固件·手势交互展示 -->
+  <h1>การแสดงสินค้าแบบโต้ตอบด้วยท่ามือ</h1>
+  <p>กดปุ่มด้านล่างเพื่อเปิดกล้องและระบบตรวจจับท่ามือ<br>
+  หน้าเลือกสินค้า: ขยับมือชี้ค้างที่สินค้า · คีย์บอร์ด <span class="kbd">1</span>-<span class="kbd">5</span> เข้าโดยตรง<br>
+  หน้ารายละเอียด: <span class="kbd">Esc</span> กลับ ·
+  <span class="kbd">E</span> ถอดแยก ·
+  <span class="kbd">↑</span><span class="kbd">↓</span> ซูม ·
+  <span class="kbd">R</span> รีเซ็ตมุมมอง<br>
+  ไม่มีผู้ใช้งานประมาณ 8 วินาที จะกลับสู่โหมดสาธิตอัตโนมัติ</p>
+  <button id="boot-btn">เริ่มการแสดง</button>
+  <div class="boot-status" id="boot-status"></div>
+</div>
+
+<!-- 依赖:全部本地加载,零网络依赖(lib/ 与 mediapipe/ 文件夹必须与本文件同目录) -->
+<script src="lib/three.min.js"></script>
+<script src="lib/EffectComposer.js"></script>
+<script src="lib/RenderPass.js"></script>
+<script src="lib/ShaderPass.js"></script>
+<script src="lib/MaskPass.js"></script>
+<script src="lib/UnrealBloomPass.js"></script>
+<script src="lib/CopyShader.js"></script>
+<script src="lib/LuminosityHighPassShader.js"></script>
+<!-- MediaPipe:本地加载(mediapipe/ 文件夹必须与本文件同目录),断网/CDN不通均可用 -->
+<script src="mediapipe/hands/hands.js"></script>
+<script src="mediapipe/camera_utils/camera_utils.js"></script>
+
+<script>
+"use strict";
+/* ╔══════════════════════════════════════════════════════════╗
+   ║  精密紧固件 · 手势交互展示 v2                              ║
+   ║  - 四产品分件建模(每个零件独立 mesh + 爆炸向量)            ║
+   ║  - 球形 trackball 旋转(四元数,非固定轴)                   ║
+   ║  - 真拆解(零件沿各自向量散开/复原,带粒子尾迹)              ║
+   ║  - 手势状态机(互斥优先级 + 防抖)                          ║
+   ║  - 自动演示模式(无人时自转 + 周期拆合)                    ║
+   ╚══════════════════════════════════════════════════════════╝ */
+
+/* ============================================================
+   0. 材质库(共用)
+   ============================================================ */
+const M = {
+  steel : (c=0xc8d0da)=> new THREE.MeshStandardMaterial({
+    color:c, metalness:.96, roughness:.24 }),
+  steelDark : ()=> new THREE.MeshStandardMaterial({
+    color:0x9aa6b4, metalness:.92, roughness:.34 }),
+  slot : ()=> new THREE.MeshStandardMaterial({          // 槽/孔内部深色
+    color:0x12161c, metalness:.55, roughness:.85 }),
+  zinc : ()=> new THREE.MeshStandardMaterial({          // 镀锌偏暖白
+    color:0xd9dde2, metalness:.88, roughness:.30 }),
+};
+
+/* 螺纹段:用环(torus)叠出,perf 友好。taper=1 圆柱牙,<1 锥形收尖 */
+function threadStack(radius, len, pitch, taper=1, mat=M.steel()){
+  const g = new THREE.Group();
+  const n = Math.max(2, Math.floor(len/pitch));
+  for(let i=0;i<n;i++){
+    const t = i/(n-1);
+    const r = radius * (taper + (1-taper)*(1-t));   // 底大头小
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(r, pitch*0.42, 8, 26), mat);
+    ring.rotation.x = Math.PI/2;
+    ring.position.y = -len/2 + i*pitch;
+    g.add(ring);
+  }
+  // 芯柱
+  const core = new THREE.Mesh(new THREE.CylinderGeometry(radius*0.82, radius*0.82*taper, len, 24), mat);
+  g.add(core);
+  return g;
+}
+
+/* ============================================================
+   1. 四个产品 —— 按你给的产品图分件建模
+      每个 part: { node, dir(爆炸方向), dist(爆炸距离) }
+   ============================================================ */
+
+/* ① 沉头十字自攻木螺钉(图1:细长、半牙、十字槽沉头) */
+function buildWoodScrew(){
+  const parts = [];
+  // 头:沉头锥 + 十字槽
+  const head = new THREE.Group();
+  const cone = new THREE.Mesh(new THREE.CylinderGeometry(.62,.22,.38,32), M.zinc());
+  cone.position.y = 2.05; head.add(cone);
+  const cap  = new THREE.Mesh(new THREE.CylinderGeometry(.62,.62,.07,32), M.zinc());
+  cap.position.y = 2.27; head.add(cap);
+  const s1 = new THREE.Mesh(new THREE.BoxGeometry(.82,.06,.12), M.slot()); s1.position.y=2.31; head.add(s1);
+  const s2 = new THREE.Mesh(new THREE.BoxGeometry(.12,.06,.82), M.slot()); s2.position.y=2.31; head.add(s2);
+  parts.push({node:head, dir:new THREE.Vector3(0,1,0), dist:1.5});
+  // 光杆段
+  const shank = new THREE.Mesh(new THREE.CylinderGeometry(.21,.21,1.9,24), M.zinc());
+  shank.position.y = 0.9;
+  parts.push({node:shank, dir:new THREE.Vector3(.7,.25,0).normalize(), dist:1.2});
+  // 螺纹段(锥形收尖)
+  const thr = threadStack(.24, 2.5, .17, .12, M.zinc());
+  thr.position.y = -1.35;
+  parts.push({node:thr, dir:new THREE.Vector3(0,-1,0), dist:1.5});
+  return { parts, fit:1.05 };
+}
+
+/* ② 球头螺柱(图2:球头 + 锥台肩 + 外螺纹杆) */
+function buildBallStud(){
+  const parts = [];
+  // 球头
+  const ball = new THREE.Mesh(new THREE.SphereGeometry(.78,36,28), M.steel());
+  ball.position.y = 1.55;
+  parts.push({node:ball, dir:new THREE.Vector3(0,1,0), dist:1.6});
+  // 颈 + 锥台肩
+  const neckG = new THREE.Group();
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(.34,.34,.5,24), M.steel());
+  neck.position.y = .65; neckG.add(neck);
+  const shoulder = new THREE.Mesh(new THREE.CylinderGeometry(.52,.72,.72,32), M.steel());
+  shoulder.position.y = .02; neckG.add(shoulder);
+  parts.push({node:neckG, dir:new THREE.Vector3(.85,.1,0).normalize(), dist:1.3});
+  // 螺纹杆
+  const thr = threadStack(.36, 1.9, .16, 1, M.steelDark());
+  thr.position.y = -1.35;
+  parts.push({node:thr, dir:new THREE.Vector3(0,-1,0), dist:1.5});
+  return { parts, fit:1.25 };
+}
+
+/* ③ 内六角缩颈螺钉(图3:圆柱头内六角 + 缩颈杆 + 螺纹段) */
+function buildShoulderSocket(){
+  const parts = [];
+  // 圆柱头 + 内六角孔
+  const head = new THREE.Group();
+  const cyl = new THREE.Mesh(new THREE.CylinderGeometry(.72,.72,.78,36), M.steel());
+  cyl.position.y = 1.7; head.add(cyl);
+  const hex = new THREE.Mesh(new THREE.CylinderGeometry(.36,.36,.4,6), M.slot());
+  hex.position.y = 1.93; head.add(hex);
+  parts.push({node:head, dir:new THREE.Vector3(0,1,0), dist:1.5});
+  // 缩颈杆(中段变细 —— 这款的识别特征)
+  const waistG = new THREE.Group();
+  const up  = new THREE.Mesh(new THREE.CylinderGeometry(.42,.30,.55,24), M.steel()); up.position.y=1.05; waistG.add(up);
+  const mid = new THREE.Mesh(new THREE.CylinderGeometry(.30,.30,.9,24), M.steel()); mid.position.y=.32; waistG.add(mid);
+  const dn  = new THREE.Mesh(new THREE.CylinderGeometry(.30,.42,.5,24), M.steel()); dn.position.y=-.36; waistG.add(dn);
+  parts.push({node:waistG, dir:new THREE.Vector3(-.8,.15,0).normalize(), dist:1.3});
+  // 螺纹段
+  const thr = threadStack(.40, 1.45, .17, 1, M.steelDark());
+  thr.position.y = -1.5;
+  parts.push({node:thr, dir:new THREE.Vector3(0,-1,0), dist:1.45});
+  return { parts, fit:1.3 };
+}
+
+/* ④ 焊接T型螺母板(图4:椭圆底板 + 两定位点 + 中央凸台螺母) */
+function buildWeldNutPlate(){
+  const parts = [];
+  // 底板(圆角长条:用拉伸形状)
+  const plateG = new THREE.Group();
+  const shape = new THREE.Shape();
+  const W=1.55, H=.82, R=.5;
+  shape.moveTo(-W+R,-H);
+  shape.lineTo(W-R,-H); shape.absarc(W-R,0,H,-Math.PI/2,Math.PI/2,false);
+  shape.lineTo(-W+R,H); shape.absarc(-W+R,0,H,Math.PI/2,Math.PI*1.5,false);
+  const plateGeo = new THREE.ExtrudeGeometry(shape,{depth:.3,bevelEnabled:true,bevelSize:.05,bevelThickness:.05,curveSegments:28});
+  plateGeo.center();
+  const plate = new THREE.Mesh(plateGeo, M.steelDark());
+  plate.rotation.x = -Math.PI/2;
+  plateG.add(plate);
+  // 两个定位浅孔
+  for(const sx of [-1,1]){
+    const dot = new THREE.Mesh(new THREE.CylinderGeometry(.13,.13,.34,18), M.slot());
+    dot.position.set(sx*1.02, .03, 0); plateG.add(dot);
+  }
+  plateG.position.y = -.35;
+  parts.push({node:plateG, dir:new THREE.Vector3(0,-1,0), dist:1.3});
+  // 中央凸台螺母(含内螺纹孔)
+  const bossG = new THREE.Group();
+  const boss = new THREE.Mesh(new THREE.CylinderGeometry(.52,.58,.95,32), M.steel());
+  boss.position.y = .35; bossG.add(boss);
+  const hole = new THREE.Mesh(new THREE.CylinderGeometry(.27,.27,1.05,24), M.slot());
+  hole.position.y = .35; bossG.add(hole);
+  // 内螺纹示意环
+  for(let i=0;i<4;i++){
+    const r = new THREE.Mesh(new THREE.TorusGeometry(.285,.025,8,22), M.steel());
+    r.rotation.x = Math.PI/2; r.position.y = .08 + i*.19; bossG.add(r);
+  }
+  parts.push({node:bossG, dir:new THREE.Vector3(0,1,0), dist:1.4});
+  return { parts, fit:1.15 };
+}
+
+/* ⑤ 六角法兰螺母 · 装配动画(握拳=拧出/拧入:沿螺栓螺旋升降) */
+function buildAssemblyNut(){
+  const parts = [];
+  // 竖直螺栓(固定不动):六角头朝下 + 长螺纹
+  const boltG = new THREE.Group();
+  const bHead = new THREE.Mesh(new THREE.CylinderGeometry(.78,.78,.55,6), M.steelDark());
+  bHead.position.y = -2.15; boltG.add(bHead);
+  const bThr = threadStack(.42, 3.6, .17, 1, M.steel());
+  bThr.position.y = -.05; boltG.add(bThr);
+  parts.push({node:boltG, dir:new THREE.Vector3(0,0,0), dist:0});   // dist=0 不动
+  // 六角法兰螺母(可动:拧出时螺旋上升)
+  const nutG = new THREE.Group();
+  const flange = new THREE.Mesh(new THREE.CylinderGeometry(.92,.98,.18,32), M.zinc());
+  flange.position.y = -.32; nutG.add(flange);
+  const hexBody = new THREE.Mesh(new THREE.CylinderGeometry(.74,.74,.62,6), M.zinc());
+  hexBody.position.y = .05; nutG.add(hexBody);
+  const bore = new THREE.Mesh(new THREE.CylinderGeometry(.43,.43,.85,24), M.slot());
+  bore.position.y = .02; nutG.add(bore);
+  nutG.position.y = -1.15;                       // 初始:拧在螺栓下段
+  parts.push({node:nutG, dir:new THREE.Vector3(0,1,0), dist:2.7,
+              spin: Math.PI*2*5.5});             // 拧出行程内转5.5圈
+  return { parts, fit:1.2 };
+}
+
+const PRODUCTS = [
+  /* 中文原文:沉头自攻木螺钉/球头螺柱/内六角缩颈螺钉/焊接螺母板/六角法兰螺母 */
+  { name:"สกรูเกลียวปล่อยหัวจม", desc:"COUNTERSUNK WOOD SCREW · สแตนเลส 304", build:buildWoodScrew },
+  { name:"สลักเกลียวหัวบอล",     desc:"BALL STUD · ชิ้นงานกลึงแม่นยำ",        build:buildBallStud },
+  { name:"สกรูหัวจมหกเหลี่ยมคอด", desc:"SOCKET SHOULDER SCREW · เหล็กอัลลอย",  build:buildShoulderSocket },
+  { name:"แผ่นน็อตเชื่อม",        desc:"T-TYPE WELD NUT PLATE · เหล็กคาร์บอน", build:buildWeldNutPlate },
+  { name:"น็อตหน้าแปลนหกเหลี่ยม", desc:"HEX FLANGE NUT · สาธิตการประกอบ (กำมือ = หมุนออก/เข้า)", build:buildAssemblyNut,
+    hintOn:'หมุนออก ✊', hintOff:'หมุนเข้า ✊' },
+];
+let currentProduct = 0;
+let currentParts = [];   // 当前产品的零件表(用于拆解)
+
+/* ============================================================
+   2. 场景
+   ============================================================ */
+let scene, camera, renderer, composer, bloomPass;
+let productGroup;        // 外层:承载 trackball 旋转
+let ambientPts, trailPts, trailData, shadowDisc;
+
+function initScene(){
+  const container = document.getElementById('scene');
+  scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x070b12, 0.016);
+
+  camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, .1, 100);
+  camera.position.set(0, 1.2, 9);
+  camera.lookAt(0, 0, 0);
+
+  renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.25;
+  container.appendChild(renderer.domElement);
+
+  /* 光照:深底但模型必须亮 —— 三点布光 + 双色轮廓光 */
+  const key  = new THREE.DirectionalLight(0xffffff, 2.6); key.position.set(6,9,7);  scene.add(key);
+  const fill = new THREE.DirectionalLight(0xaecbe8, 1.1); fill.position.set(-7,2,5); scene.add(fill);
+  const rimA = new THREE.SpotLight(0x36c9d8, 3.2, 40, Math.PI/5, .55); rimA.position.set(-5,7,-8); scene.add(rimA);
+  const rimB = new THREE.SpotLight(0xffc861, 2.6, 40, Math.PI/5, .55); rimB.position.set(6,5,-7);  scene.add(rimB);
+  scene.add(new THREE.HemisphereLight(0xcfe0f0, 0x141a24, .9));
+
+  /* 地面网格 */
+  const grid = new THREE.GridHelper(90, 90, 0x1d4a54, 0x101a26);
+  grid.position.y = -2.6; grid.material.opacity=.4; grid.material.transparent=true;
+  scene.add(grid);
+
+  addAmbientParticles();
+  addTrailParticles();
+
+  /* 假阴影:径向渐变圆盘,给模型"落地感" */
+  const sc = document.createElement('canvas'); sc.width=sc.height=128;
+  const sg = sc.getContext('2d');
+  const grad = sg.createRadialGradient(64,64,6,64,64,64);
+  grad.addColorStop(0,'rgba(0,0,0,.55)'); grad.addColorStop(1,'rgba(0,0,0,0)');
+  sg.fillStyle=grad; sg.fillRect(0,0,128,128);
+  shadowDisc = new THREE.Mesh(
+    new THREE.PlaneGeometry(7,7),
+    new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(sc),transparent:true,depthWrite:false}));
+  shadowDisc.rotation.x = -Math.PI/2;
+  shadowDisc.position.y = -2.55;
+  scene.add(shadowDisc);
+
+  productGroup = new THREE.Group();
+  scene.add(productGroup);
+
+  /* —— 选择页:四产品卫星轨道 —— */
+  orbitGroup = new THREE.Group();
+  const ORBIT_R = 4.2;
+  PRODUCTS.forEach((p,i)=>{
+    const built = p.build();
+    const sat = new THREE.Group();
+    for(const part of built.parts) sat.add(part.node);
+    const s = built.fit * .52;            // 卫星缩小
+    sat.scale.setScalar(s);
+    const holder = new THREE.Group();     // holder 定轨道位置,sat 自转
+    holder.add(sat);
+    const ang = i/PRODUCTS.length*Math.PI*2;
+    holder.position.set(Math.cos(ang)*ORBIT_R, 0, Math.sin(ang)*ORBIT_R);
+    holder.userData = { idx:i, sat, baseScale:s, ang };
+    orbitGroup.add(holder);
+    satellites.push(holder);
+  });
+  scene.add(orbitGroup);
+
+  // 卫星名称标签(HTML,跟随投影位置)
+  PRODUCTS.forEach((p,i)=>{
+    const el = document.createElement('div');
+    el.className='sat-label'; el.textContent=p.name; el.id='sat-label-'+i;
+    document.body.appendChild(el);
+  });
+
+  enterSelect();   // 初始进入选择页
+
+  composer = new THREE.EffectComposer(renderer);
+  composer.addPass(new THREE.RenderPass(scene, camera));
+  bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight), .55, .5, .82);
+  composer.addPass(bloomPass);
+
+  addEventListener('resize', ()=>{
+    camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+    composer.setSize(innerWidth, innerHeight);
+  });
+}
+
+/* 氛围粒子:远景悬浮尘 */
+function addAmbientParticles(){
+  const n=550, pos=new Float32Array(n*3);
+  for(let i=0;i<n;i++){
+    pos[i*3]=(Math.random()-.5)*46;
+    pos[i*3+1]=(Math.random()-.5)*26;
+    pos[i*3+2]=(Math.random()-.5)*32;
+  }
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos,3));
+  ambientPts=new THREE.Points(g, new THREE.PointsMaterial({
+    color:0x36c9d8,size:.05,transparent:true,opacity:.4,
+    depthWrite:false,blending:THREE.AdditiveBlending}));
+  scene.add(ambientPts);
+}
+
+/* 拆解尾迹粒子池:拆解动作发生时,从零件位置喷出小颗粒 */
+function addTrailParticles(){
+  const n=260;
+  trailData = { n, pos:new Float32Array(n*3), vel:new Float32Array(n*3), life:new Float32Array(n), head:0 };
+  trailData.life.fill(0);
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(trailData.pos,3));
+  trailPts=new THREE.Points(g, new THREE.PointsMaterial({
+    color:0xffd27a,size:.09,transparent:true,opacity:.85,
+    depthWrite:false,blending:THREE.AdditiveBlending}));
+  scene.add(trailPts);
+}
+/* 在世界坐标 p 处发射一颗尾迹粒子 */
+function emitTrail(p){
+  const i = trailData.head; trailData.head=(i+1)%trailData.n;
+  trailData.pos[i*3]=p.x; trailData.pos[i*3+1]=p.y; trailData.pos[i*3+2]=p.z;
+  trailData.vel[i*3]=(Math.random()-.5)*.6;
+  trailData.vel[i*3+1]=(Math.random()-.5)*.6;
+  trailData.vel[i*3+2]=(Math.random()-.5)*.6;
+  trailData.life[i]=1;
+}
+function updateTrail(dt){
+  const d=trailData;
+  for(let i=0;i<d.n;i++){
+    if(d.life[i]<=0) continue;
+    d.life[i]-=dt*1.4;
+    d.pos[i*3]+=d.vel[i*3]*dt; d.pos[i*3+1]+=d.vel[i*3+1]*dt; d.pos[i*3+2]+=d.vel[i*3+2]*dt;
+    if(d.life[i]<=0){ d.pos[i*3+1]=-999; }   // 移出视野
+  }
+  trailPts.geometry.attributes.position.needsUpdate=true;
+}
+
+/* ============================================================
+   3. 产品加载 / 切换
+   ============================================================ */
+function loadProduct(idx){
+  while(productGroup.children.length) productGroup.remove(productGroup.children[0]);
+  const p = PRODUCTS[idx];
+  const built = p.build();
+  currentParts = built.parts;
+  const inner = new THREE.Group();
+  for(const part of currentParts){
+    part.home = part.node.position.clone();     // 记录原位
+    inner.add(part.node);
+  }
+  inner.scale.setScalar(.01);                   // 淡入
+  inner.userData.targetScale = built.fit;
+  productGroup.add(inner);
+  // 重置拆解 / 旋转不重置(保持观看角度)
+  STATE.explodeOn=false; STATE.explode=0;
+  setExplodeUI(false);
+  document.getElementById('pn-idx').textContent =
+    String(idx+1).padStart(2,'0')+' / '+String(PRODUCTS.length).padStart(2,'0');
+  document.getElementById('pn-name').textContent = p.name;
+  document.getElementById('pn-desc').textContent = p.desc;
+}
+
+let lastSwitch = 0;
+function switchProduct(dir){
+  const now = performance.now();
+  if(now - lastSwitch < 800) return;
+  lastSwitch = now;
+  currentProduct = (currentProduct + dir + PRODUCTS.length) % PRODUCTS.length;
+  loadProduct(currentProduct);
+}
+
+/* ============================================================
+   4. 状态 + 球形 trackball 旋转
+   ============================================================ */
+const STATE = {
+  mode:'select',     // 'select' 选择页 / 'detail' 详情页
+  paused:false,
+  zoom:.45,          // 0=最远(远观) 1=最近(细节),默认中景
+  explodeOn:false,   // 拆解开关(边沿触发)
+  explode:0,         // 0~1 进度
+  auto:false,        // 自动演示模式
+};
+let orbitGroup = null;
+let satellites = [];           // 卫星 holder 列表
+let satScreens = [];           // 卫星屏幕坐标缓存(animate 每帧更新)
+let hoverIdx = -1, hoverStart = 0;
+let orbitSpeed = .12;          // 公转速度(悬停时刹车)
+const HOVER_HOLD_MS = 750;     // 悬停进入时长
+const HOVER_RADIUS = 0.13;     // 悬停判定半径(归一化屏幕距离)
+
+/* —— 模式切换:选择页 ⇄ 详情页 —— */
+function enterSelect(){
+  STATE.mode = 'select';
+  while(productGroup.children.length) productGroup.remove(productGroup.children[0]);
+  productGroup.quaternion.identity();
+  orbitGroup.visible = true;
+  STATE.zoom = .45; setZoomUI(STATE.zoom);
+  STATE.explodeOn=false; STATE.explode=0; setExplodeUI(false);
+  hoverIdx=-1;
+  document.getElementById('select-title').style.opacity = 1;
+  document.getElementById('guide-select').style.display = 'flex';
+  document.getElementById('guide-detail').style.display = 'none';
+  document.getElementById('pn-idx').textContent = '— / —';
+  document.getElementById('pn-name').textContent = 'สินค้าทั้งหมด' /* 全部产品 */;
+  document.getElementById('pn-desc').textContent = 'ชี้ค้างที่สินค้าเพื่อเข้าชม' /* 悬停任意产品进入查看 */;
+  document.getElementById('dot-zoom').parentElement.style.display='none';
+  document.getElementById('dot-explode').parentElement.style.display='none';
+  setEdgeUI(0,0); setTopUI(0); setFistUI(0);
+}
+function enterDetail(idx){
+  STATE.mode = 'detail';
+  currentProduct = idx;
+  orbitGroup.visible = false;
+  loadProduct(idx);
+  document.getElementById('select-title').style.opacity = 0;
+  document.getElementById('guide-select').style.display = 'none';
+  document.getElementById('guide-detail').style.display = 'flex';
+  document.getElementById('hand-cursor').style.opacity = 0;
+  PRODUCTS.forEach((p,i)=>{ const lb=document.getElementById('sat-label-'+i); if(lb) lb.style.opacity=0; });
+  document.getElementById('dot-zoom').parentElement.style.display='flex';
+  document.getElementById('dot-explode').parentElement.style.display='flex';
+  flashHint(PRODUCTS[idx].name);
+}
+/* trackball:手位移 → 屏幕轴四元数,预乘到 productGroup */
+const tb = {
+  lastX:null, lastY:null,
+  velX:0, velY:0,           // 惯性
+};
+function trackballMove(nx, ny){    // nx,ny ∈ [0,1] 手心位置
+  if(tb.lastX!==null){
+    const dx = nx - tb.lastX, dy = ny - tb.lastY;
+    applyTrackball(dx, dy, 5.2);
+    tb.velX = dx; tb.velY = dy;    // 记录速度做惯性
+  }
+  tb.lastX=nx; tb.lastY=ny;
+}
+function trackballRelease(){ tb.lastX=null; tb.lastY=null; }
+function applyTrackball(dx, dy, gain){
+  // 镜像摄像头:nx 增大 = 手向左 → 直觉上模型应跟手 → 取负
+  const qx = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0), -dx*gain);
+  const qy = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),  dy*gain);
+  productGroup.quaternion.premultiply(qx).premultiply(qy);
+}
+
+/* ============================================================
+   5. 动画主循环
+   ============================================================ */
+const clock = new THREE.Clock();
+let autoTimer = 0, autoExplodePhase = 0;
+let lastHandSeen = performance.now();
+
+function animate(){
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), .05);
+  const now = performance.now();
+
+  /* —— 自动演示:无人 8s 进入(回到选择页公转);有手立即退出 —— */
+  const idleMs = now - lastHandSeen;
+  const shouldAuto = idleMs > 8000;
+  if(shouldAuto !== STATE.auto){
+    STATE.auto = shouldAuto;
+    document.getElementById('auto-badge').classList.toggle('show', STATE.auto);
+    if(STATE.auto){
+      STATE.paused=false; setStateUI(false);
+      if(STATE.mode==='detail') enterSelect();   // 无人时回到全产品环绕
+      document.getElementById('hand-cursor').style.opacity = 0;
+    }
+  }
+
+  /* ════ 选择页:轨道公转 + 卫星自转 + 悬停放大 ════ */
+  if(STATE.mode==='select'){
+    // 悬停任意产品时公转刹车,避免目标移走导致脱靶;移开恢复
+    const targetSpeed = (hoverIdx>=0) ? 0 : (STATE.auto ? .22 : .12);
+    orbitSpeed += (targetSpeed - orbitSpeed)*.12;
+    orbitGroup.rotation.y += dt * orbitSpeed;
+    satScreens.length = 0;
+    for(const h of satellites){
+      h.userData.sat.rotation.y += dt*.8;
+      h.userData.sat.rotation.x = Math.sin(clock.elapsedTime*.6 + h.userData.idx)*0.18;
+      // 悬停的放大,其余回基础大小
+      const tgt = (h.userData.idx===hoverIdx) ? h.userData.baseScale*1.45 : h.userData.baseScale;
+      const cs = h.userData.sat.scale.x;
+      h.userData.sat.scale.setScalar(cs + (tgt-cs)*.15);
+      // 缓存屏幕坐标(供手光标悬停判定)
+      const wp = h.getWorldPosition(new THREE.Vector3()).project(camera);
+      satScreens.push({ idx:h.userData.idx, x:(wp.x+1)/2, y:(1-wp.y)/2 });
+      // 名称标签跟随(产品下方),悬停高亮
+      const lb = document.getElementById('sat-label-'+h.userData.idx);
+      if(lb){
+        lb.style.left = ((wp.x+1)/2*100)+'%';
+        lb.style.top  = ((1-wp.y)/2*100 + 7)+'%';
+        lb.style.opacity = 1;
+        lb.classList.toggle('hot', h.userData.idx===hoverIdx);
+      }
+    }
+    // 选择页相机固定中景;阴影淡化
+    camera.position.z += (11 - camera.position.z)*.08;
+    if(shadowDisc) shadowDisc.material.opacity += (.25 - shadowDisc.material.opacity)*.1;
+  }
+
+  /* ════ 详情页:模型淡入 + 拆解 + 缩放 ════ */
+  if(STATE.mode==='detail'){
+    if(shadowDisc) shadowDisc.material.opacity += (1 - shadowDisc.material.opacity)*.1;
+    const inner = productGroup.children[0];
+    if(inner){
+      const t = inner.userData.targetScale || 1;
+      inner.scale.lerp(new THREE.Vector3(t,t,t), .14);
+    }
+
+    if(STATE.auto && !STATE.paused){
+      applyTrackball(dt*.055, Math.sin(clock.elapsedTime*.5)*dt*.02, 1);
+    }
+
+    /* 旋转惯性 */
+    if(tb.lastX===null && (Math.abs(tb.velX)>.0004 || Math.abs(tb.velY)>.0004)){
+      applyTrackball(tb.velX, tb.velY, 5.2);
+      tb.velX*=.94; tb.velY*=.94;
+    }
+
+    /* 拆解进度 + 零件位移(支持 spin:位移同时自转=螺旋拧出) + 尾迹 */
+    const target = STATE.explodeOn ? 1 : 0;
+    const before = STATE.explode;
+    const hasSpin = currentParts.some(p=>p.spin);
+    STATE.explode += (target - STATE.explode) * (hasSpin ? .045 : .10);  // 拧的动画放慢看得清
+    const moving = Math.abs(STATE.explode-before) > .002;
+    if(inner && currentParts.length){
+      for(const part of currentParts){
+        const off = part.dir.clone().multiplyScalar(part.dist * STATE.explode);
+        part.node.position.copy(part.home).add(off);
+        if(part.spin) part.node.rotation.y = STATE.explode * part.spin;
+        if(moving && Math.random()<.25){
+          const wp = part.node.getWorldPosition(new THREE.Vector3());
+          emitTrail(wp);
+        }
+      }
+    }
+
+    /* 缩放 → 相机推拉(范围:远观22 ~ 特写4.8) */
+    const camZ = 22 - STATE.zoom*17.2;
+    camera.position.z += (camZ - camera.position.z)*.1;
+  }
+
+  if(ambientPts) ambientPts.rotation.y += dt*.018;
+  updateTrail(dt);
+
+  composer.render();
+}
+
+/* ============================================================
+   6. UI 更新
+   ============================================================ */
+function setZoomUI(v){
+  document.getElementById('v-zoom').textContent = Math.round(v*100)+'%';
+  document.getElementById('dot-zoom').classList.toggle('on', v>.02);
+}
+function setStateUI(paused){
+  document.getElementById('v-state').textContent = paused?'หยุดชั่วคราว':'ทำงาน' /* 已暂停:运行中 */;
+  document.getElementById('dot-state').classList.toggle('on', !paused);
+  const big=document.getElementById('big-state');
+  if(paused){ big.textContent='หยุดชั่วคราว' /* 暂停 */; big.classList.add('show'); }
+  else if(big.textContent==='หยุดชั่วคราว'){ big.classList.remove('show'); }
+}
+function setExplodeUI(on){
+  document.getElementById('v-explode').textContent = on?'แยกชิ้น':'ประกอบ' /* 已展开:闭合 */;
+  document.getElementById('dot-explode').classList.toggle('on', on);
+}
+function setHandUI(d){
+  document.getElementById('v-hand').textContent = d?'ตรวจพบ':'รอ' /* 已识别:等待 */;
+  document.getElementById('dot-hand').classList.toggle('on', d);
+}
+/* 边缘热区指示:side -1左/1右/0无, prog 0~1 */
+function setEdgeUI(side, prog){
+  const L=document.getElementById('edge-left'), R=document.getElementById('edge-right');
+  L.style.opacity = side<0 ? 1 : 0;
+  R.style.opacity = side>0 ? 1 : 0;
+  if(side<0) L.querySelector('.edge-fill').style.height = (prog*100)+'%';
+  if(side>0) R.querySelector('.edge-fill').style.height = (prog*100)+'%';
+}
+/* 顶部返回热区:prog 0~1 */
+function setTopUI(prog){
+  const T=document.getElementById('edge-top');
+  T.style.opacity = prog>0 ? 1 : 0;
+  T.querySelector('.edge-fill').style.width = (prog*100)+'%';
+}
+/* 握拳进度环:prog 0~1,0 时隐藏 */
+function setFistUI(prog){
+  const ring=document.getElementById('fist-ring');
+  ring.classList.toggle('show', prog>0.05);
+  ring.querySelector('.ring-fg').style.strokeDashoffset = 264*(1-prog);
+}
+let hintTimer=null;
+function flashHint(txt){
+  const big=document.getElementById('big-state');
+  big.textContent=txt; big.classList.add('show');
+  clearTimeout(hintTimer);
+  hintTimer=setTimeout(()=>{ if(!STATE.paused) big.classList.remove('show'); }, 650);
+}
+
+/* ============================================================
+   7. 手势识别 —— 状态机(互斥优先级)
+      新设计原则:手势形状只留 3 个互相距离远的(张开/捏合/握拳),
+      "切换产品"挪到空间维度(手移到画面左右边缘悬停),
+      "拆解"用握拳保持1秒触发 —— 杜绝形状变换路上的误触。
+   ============================================================ */
+const camEl = document.getElementById('cam');
+const overlay = document.getElementById('cam-overlay');
+const octx = overlay.getContext('2d');
+let gestureStable = {name:null, frames:0};   // 连续帧确认,抗抖
+
+/* 只分三类 + 过渡态。捏合用拇指食指距离单独判定,不参与形状分类 */
+function classify(lm){
+  const wrist=lm[0], tips=[8,12,16,20], mcp=[5,9,13,17];
+  const up=[];
+  for(let i=0;i<4;i++) up[i] = dist(lm[tips[i]],wrist) > dist(lm[mcp[i]],wrist)*1.15;
+  const n = up.filter(Boolean).length;
+  if(n===0) return 'fist';
+  if(n>=4) return 'open';
+  return 'other';
+}
+
+/* —— 边缘悬停切换 —— */
+const EDGE = 0.16;          // 画面左右各 16% 为切换热区
+const EDGE_HOLD_MS = 550;   // 悬停时长
+let edgeSide = 0;           // -1 左 / 1 右 / 0 无
+let edgeStart = 0;
+
+/* —— 握拳保持拆解 —— */
+const FIST_HOLD_MS = 800;
+let fistStart = 0, fistFired = false;
+
+/* —— 缩放模式:需先明确捏紧确认进入,再开合相对调节 ——
+   解决"旋转收手路过捏合距离导致误缩放"的串扰 */
+const PINCH_ENTER = 0.075;   // 指距小于此值才进入缩放模式
+const PINCH_EXIT  = 0.34;    // 大于此值或手形变化则退出
+let zoomMode = { active:false, basePinch:0, baseZoom:0, lastPinch:0 };
+let zoomHist = [];           // 缩放值历史(用于退出时回滚,撤销张手瞬间的误拉)
+function exitZoomMode(rollback){
+  if(zoomMode.active && rollback && zoomHist.length){
+    STATE.zoom = zoomHist[0];          // 回滚到张手动作前(~0.3s前)的值
+    setZoomUI(STATE.zoom);
+  }
+  zoomMode.active = false;
+  zoomHist.length = 0;
+}
+
+function onHandResults(results){
+  octx.clearRect(0,0,overlay.width,overlay.height);
+  const hands = results.multiHandLandmarks;
+  if(!hands || !hands.length){
+    setHandUI(false); trackballRelease();
+    gestureStable={name:null,frames:0};
+    edgeSide=0; fistStart=0; fistFired=false;
+    exitZoomMode(true);
+    hoverIdx=-1;
+    setEdgeUI(0,0); setTopUI(0); setFistUI(0);
+    document.getElementById('hand-cursor').style.opacity = 0;
+    return;
+  }
+  setHandUI(true);
+  lastHandSeen = performance.now();
+
+  const lm = hands[0];
+  drawLandmarks(lm);
+
+  const g = classify(lm);
+  if(g===gestureStable.name) gestureStable.frames++;
+  else gestureStable={name:g, frames:1};
+  const G = gestureStable.frames>=3 ? gestureStable.name : 'other';
+
+  const thumb=lm[4], index=lm[8];
+  const palmX=(lm[0].x+lm[9].x)/2, palmY=(lm[0].y+lm[9].y)/2;
+  const now = performance.now();
+  const screenX = 1 - palmX;            // 镜像:0=屏幕左 1=屏幕右
+  const screenY = palmY;                // 0=顶 1=底
+
+  /* ════════════ 选择页:手=光标,悬停产品进入 ════════════ */
+  if(STATE.mode==='select'){
+    const cur = document.getElementById('hand-cursor');
+    cur.style.opacity = 1;
+    cur.style.left = (screenX*100)+'%';
+    cur.style.top  = (screenY*100)+'%';
+    // 找最近的卫星(屏幕距离,按宽高比校正,判定圈为正圆)
+    const ar = innerWidth/innerHeight;
+    let best=-1, bestD=1e9;
+    for(const s of satScreens){
+      const d = Math.hypot((s.x-screenX)*ar, s.y-screenY);
+      if(d<bestD){ bestD=d; best=s.idx; }
+    }
+    if(best>=0 && bestD < HOVER_RADIUS*ar){
+      if(best !== hoverIdx){ hoverIdx=best; hoverStart=now; }
+      const prog = Math.min(1,(now-hoverStart)/HOVER_HOLD_MS);
+      cur.querySelector('.hc-fill').style.transform = `scale(${prog})`;
+      // 顶部产品名预览
+      document.getElementById('pn-name').textContent = PRODUCTS[best].name;
+      document.getElementById('pn-desc').textContent = PRODUCTS[best].desc;
+      if(prog>=1){ enterDetail(best); }
+    }else{
+      hoverIdx=-1;
+      cur.querySelector('.hc-fill').style.transform = 'scale(0)';
+      document.getElementById('pn-name').textContent = 'สินค้าทั้งหมด' /* 全部产品 */;
+      document.getElementById('pn-desc').textContent = 'ชี้ค้างที่สินค้าเพื่อเข้าชม' /* 悬停任意产品进入查看 */;
+    }
+    return;   // 选择页不做其他手势
+  }
+
+  /* ════════════ 详情页 ════════════ */
+
+  /* ── 1. 顶部边缘悬停 = 返回选择页 ── */
+  let topZone = screenY < 0.12;
+  if(topZone){
+    if(edgeSide !== 9){ edgeSide = 9; edgeStart = now; }   // 9 = 顶部标记
+    const prog = Math.min(1, (now-edgeStart)/EDGE_HOLD_MS);
+    setTopUI(prog);
+    if(prog >= 1){ enterSelect(); return; }
+  }else{
+    if(edgeSide===9) edgeSide=0;
+    setTopUI(0);
+  }
+
+  /* ── 2. 握拳保持 = 拆解/合拢 ── */
+  if(G==='fist'){
+    trackballRelease();
+    if(fistStart===0){ fistStart = now; fistFired=false; }
+    const prog = Math.min(1,(now-fistStart)/FIST_HOLD_MS);
+    setFistUI(prog);
+    if(prog>=1 && !fistFired){
+      STATE.explodeOn = !STATE.explodeOn;
+      setExplodeUI(STATE.explodeOn);
+      const pp = PRODUCTS[currentProduct];
+      flashHint(STATE.explodeOn ? (pp.hintOn||'ถอดแยก ✊' /* 拆解 */) : (pp.hintOff||'ประกอบ ✊' /* 合拢 */));
+      fistFired = true;
+    }
+    return;
+  }else{
+    fistStart=0; fistFired=false; setFistUI(0);
+  }
+
+  /* ── 3. 张开 = 球形旋转(顶部热区内不旋转) ── */
+  if(G==='open' && !topZone){
+    trackballMove(palmX, palmY);
+    return;
+  }
+  trackballRelease();
+
+  /* ── 4. 缩放:捏紧确认进入 → 开合调节 → 张手退出(回滚锁定调好的值) ── */
+  if(G==='other'){
+    const pinch = dist(thumb, index);
+    if(!zoomMode.active){
+      if(pinch < PINCH_ENTER){           // 明确捏紧 → 进入缩放模式
+        zoomMode = { active:true, basePinch:pinch, baseZoom:STATE.zoom, lastPinch:pinch };
+        zoomHist.length = 0;
+        flashHint('ซูม 🤏') /* 缩放 */;
+      }
+    }else{
+      // 快速张开 = 退出意图,立即回滚退出(不让张手动作拉高数值)
+      if(pinch - zoomMode.lastPinch > 0.045 || pinch > PINCH_EXIT){
+        exitZoomMode(true);
+      }else{
+        // 非对称满程映射:撑到最开=100%,捏到底=0%
+        const PMAX = 0.30, PMIN = 0.035;
+        let z;
+        if(pinch >= zoomMode.basePinch){
+          const t = (pinch - zoomMode.basePinch) / Math.max(.01, PMAX - zoomMode.basePinch);
+          z = zoomMode.baseZoom + Math.min(1,t) * (1 - zoomMode.baseZoom);
+        }else{
+          const t = (zoomMode.basePinch - pinch) / Math.max(.01, zoomMode.basePinch - PMIN);
+          z = zoomMode.baseZoom - Math.min(1,t) * zoomMode.baseZoom;
+        }
+        STATE.zoom = STATE.zoom*.7 + clamp(z,0,1)*.3;
+        setZoomUI(STATE.zoom);
+        // 记录历史(约0.3s窗口),供退出回滚
+        zoomHist.push(STATE.zoom);
+        if(zoomHist.length > 9) zoomHist.shift();
+        zoomMode.lastPinch = pinch;
+      }
+    }
+  }else{
+    exitZoomMode(true);                  // 手形变化(张开/握拳)→ 回滚退出
+  }
+}
+
+function drawLandmarks(lm){
+  overlay.width = overlay.clientWidth; overlay.height = overlay.clientHeight;
+  octx.fillStyle = '#36c9d8';
+  for(const p of lm){
+    octx.beginPath();
+    octx.arc(p.x*overlay.width, p.y*overlay.height, 2.6, 0, Math.PI*2);
+    octx.fill();
+  }
+}
+const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y,(a.z||0)-(b.z||0));
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+/* ============================================================
+   8. 键盘兜底
+   ============================================================ */
+addEventListener('keydown', e=>{
+  lastHandSeen = performance.now();
+  if(STATE.mode==='select'){
+    // 数字键 1-4 直接进入对应产品
+    const n = parseInt(e.key);
+    if(n>=1 && n<=PRODUCTS.length) enterDetail(n-1);
+    return;
+  }
+  // 详情页
+  if(e.code==='Escape' || e.code==='Backspace') enterSelect();
+  if(e.code==='ArrowRight') switchProduct(1);
+  if(e.code==='ArrowLeft')  switchProduct(-1);
+  if(e.code==='Space'){ e.preventDefault(); STATE.paused=!STATE.paused; setStateUI(STATE.paused); }
+  if(e.code==='KeyE'){ STATE.explodeOn=!STATE.explodeOn; setExplodeUI(STATE.explodeOn); }
+  if(e.code==='ArrowUp'){ STATE.zoom=clamp(STATE.zoom+.1,0,1); setZoomUI(STATE.zoom); }
+  if(e.code==='ArrowDown'){ STATE.zoom=clamp(STATE.zoom-.1,0,1); setZoomUI(STATE.zoom); }
+  if(e.code==='KeyR'){ productGroup.quaternion.identity(); }
+});
+
+/* ============================================================
+   9. 启动
+   ============================================================ */
+const bootStatus = document.getElementById('boot-status');
+async function startHands(){
+  bootStatus.textContent = 'กำลังโหลดโมเดลตรวจจับมือ...' /* 正在加载手势模型 */;
+  try{
+    const hands = new Hands({locateFile:f=>`mediapipe/hands/${f}`});
+    hands.setOptions({maxNumHands:1, modelComplexity:1,
+      minDetectionConfidence:.6, minTrackingConfidence:.6});
+    hands.onResults(onHandResults);
+    const cam = new Camera(camEl, {
+      onFrame: async()=>{ await hands.send({image:camEl}); },
+      width:640, height:480
+    });
+    await cam.start();
+    bootStatus.textContent='';
+    return true;
+  }catch(err){
+    console.error(err);
+    bootStatus.textContent='⚠ กล้องใช้งานไม่ได้ — ใช้คีย์บอร์ดหรือโหมดอัตโนมัติ' /* 摄像头失败,键盘+自动演示兜底 */;
+    return false;
+  }
+}
+
+document.getElementById('boot-btn').addEventListener('click', async ()=>{
+  document.getElementById('boot-btn').disabled = true;
+  initScene();
+  animate();
+  setStateUI(false); setZoomUI(0); setExplodeUI(false);
+  const ok = await startHands();
+  setTimeout(()=>{ document.getElementById('boot').style.display='none'; }, ok?300:1600);
+});
+</script>
+</body>
+</html>
