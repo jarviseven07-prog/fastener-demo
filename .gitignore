@@ -6,6 +6,7 @@
 
 # Heavy/intermediate model assets
 models/raw/
+models/raw_backup/
 models/optimized/
 models/optimized_lite/
 tripo_views/
