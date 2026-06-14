@@ -730,7 +730,7 @@ function onHandResults(res){
       tbRelease();
       if(!pointHeld){ pointHeld=true;
         STATE.asmStep = (STATE.asmStep>=4)?0:STATE.asmStep+1;   // 逐级+1,满了回0
-        const names=['','装Flat Washer','装Serrated Washer','装Spring Washer','+ Nut'];
+        const names=['','Install Flat Washer','Install Serrated Washer','Install Spring Washer','Install Hex Nut'];
         flashHint(STATE.asmStep===0?'Split all ☝':(names[STATE.asmStep]+' ☝'));
         document.getElementById('v-action').textContent='Step '+STATE.asmStep+'/4';
       }
