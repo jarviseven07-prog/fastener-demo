@@ -730,7 +730,7 @@ function onHandResults(res){
       tbRelease();
       if(!pointHeld){ pointHeld=true;
         STATE.asmStep = (STATE.asmStep>=4)?0:STATE.asmStep+1;   // 逐级+1,满了回0
-        const names=['','装แหวนแบน','装แหวนฟันเลื่อย','装แหวนสปริง','+ น็อต'];
+        const names=['','ใส่แหวนแบน','ใส่แหวนฟันเลื่อย','ใส่แหวนสปริง','ใส่น็อตหกเหลี่ยม'];
         flashHint(STATE.asmStep===0?'ถอดทั้งหมด ☝':(names[STATE.asmStep]+' ☝'));
         document.getElementById('v-action').textContent='ขั้น '+STATE.asmStep+'/4';
       }
