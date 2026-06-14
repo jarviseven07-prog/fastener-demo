@@ -1,0 +1,15 @@
+.npm-cache/
+
+# Local backups and temporary exports
+*.bak
+*.orig
+
+# Heavy/intermediate model assets
+models/raw/
+models/optimized/
+models/optimized_lite/
+tripo_views/
+
+# OS/editor noise
+Thumbs.db
+.DS_Store
