@@ -14,3 +14,4 @@ tripo_views/
 # OS/editor noise
 Thumbs.db
 .DS_Store
+__pycache__/
