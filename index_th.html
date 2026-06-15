@@ -344,8 +344,22 @@ function loadAllModels(onProgress){
 }
 
 /* ===== 五个零件工厂(返回规范化 GLB 模板的 clone,接口同原代码几何体) ===== */
+function addNutBoreSleeve(nut){
+  const mat = M.steel(0xe4e9ef);
+  const g = new THREE.Group();
+  const radius = 0.43, tube = 0.026, len = 0.62, pitch = 0.095;
+  const n = Math.max(2, Math.floor(len / pitch));
+  for(let i=0;i<n;i++){
+    const r = new THREE.Mesh(new THREE.TorusGeometry(radius, tube, 8, 42), mat);
+    r.rotation.x = Math.PI/2;
+    r.position.y = -len/2 + i*pitch;
+    g.add(r);
+  }
+  nut.add(g);
+  return nut;
+}
 function makeBolt(){           return MODEL_TPL.bolt.clone(true); }
-function makeNut(){            return MODEL_TPL.nut.clone(true); }
+function makeNut(){            return addNutBoreSleeve(MODEL_TPL.nut.clone(true)); }
 function makeFlatWasher(){     return MODEL_TPL.flat.clone(true); }
 function makeSpringWasher(){   return MODEL_TPL.spring.clone(true); }
 function makeSerratedWasher(){ return MODEL_TPL.serr.clone(true); }
