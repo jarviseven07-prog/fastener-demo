@@ -469,11 +469,11 @@ function updateTrail(dt){ const d=trailData; if(!d) return;
 /* Assembly模型:返回 root,并填充 STACK(若 fillStack) */
 function buildAssemblyModel(previewOnly){
   const root=new THREE.Group(); const localStack=[];
-  const bolt=makeBolt(); bolt.userData={home:0,lift:0,order:4}; root.add(bolt); localStack.push(bolt);
-  const flat=makeFlatWasher(); flat.userData={home:-1.55,lift:1.4,order:3}; root.add(flat); localStack.push(flat);
-  const serr=makeSerratedWasher(); serr.userData={home:-1.2,lift:2.0,order:2}; root.add(serr); localStack.push(serr);
-  const spring=makeSpringWasher(); spring.userData={home:-0.85,lift:2.6,order:1}; root.add(spring); localStack.push(spring);
-  const nut=makeNut(); nut.userData={home:-0.3,lift:3.3,order:0}; root.add(nut); localStack.push(nut);
+  const bolt=makeBolt(); bolt.userData={home:0,lift:0,order:4,spinTurns:0}; root.add(bolt); localStack.push(bolt);
+  const flat=makeFlatWasher(); flat.userData={home:-1.55,lift:1.4,order:3,spinTurns:.75}; root.add(flat); localStack.push(flat);
+  const serr=makeSerratedWasher(); serr.userData={home:-1.2,lift:2.0,order:2,spinTurns:1.2}; root.add(serr); localStack.push(serr);
+  const spring=makeSpringWasher(); spring.userData={home:-0.85,lift:2.6,order:1,spinTurns:1.6}; root.add(spring); localStack.push(spring);
+  const nut=makeNut(); nut.userData={home:-0.3,lift:3.3,order:0,spinTurns:5.2}; root.add(nut); localStack.push(nut);
   // 摆到Build位
   for(const part of localStack){ if(part.userData.lift!==undefined) part.position.y=part.userData.home; }
   if(!previewOnly) STACK=localStack;
@@ -622,6 +622,7 @@ function animate(){
       const installed = clamp(STATE.asmStepProg - (seq-1), 0, 1);  // 0未装~1到位
       const ease = installed<0.5?2*installed*installed:1-Math.pow(-2*installed+2,2)/2;
       part.position.y = u.home + u.lift*(1-ease);
+      part.rotation.y = (u.spinTurns||0) * Math.PI*2 * (1-ease);
       if(moving && installed>0.02 && installed<0.98 && Math.random()<.3){
         emitTrail(part.getWorldPosition(new THREE.Vector3()));
       }
