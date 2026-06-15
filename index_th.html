@@ -277,8 +277,8 @@ function ringPart(outerR,innerR,thick,mat){
    预加载 5 个 GLB,把每个规范化成"轴线=Y、原点居中、尺寸对齐原代码几何体"的模板;
    make*() 改为返回模板的 clone,从而保持原同步接口,手势/组装/动画逻辑零改动。 */
 const MODEL_PATHS = {
-  bolt:   'models/optimized_fast/hex_bolt.glb?v=hex-head-fit-20260616',
-  nut:    'models/optimized_fast/hex_nut.glb?v=nut-bore-tight-20260616',
+  bolt:   'models/optimized_fast/hex_bolt.glb?v=hex-head-plus-20260616',
+  nut:    'models/optimized_fast/hex_nut.glb?v=nut-outer-fit-20260616',
   flat:   'models/optimized_fast/flat_washer.glb',
   spring: 'models/optimized_fast/spring_washer.glb',
   serr:   'models/optimized_fast/serrated_washer.glb',
@@ -290,7 +290,7 @@ const MODEL_PATHS = {
 //         螺纹等细节由 GLB 真实几何呈现,不依赖贴图,所以丢贴图也不丢立体感。
 const MODEL_NORM = {
   bolt:   { rot:[0,0,0],         axis:'y', target:4.8,  mat:()=>M.steel()     }, // 螺栓:头朝下,与原版一致,按全高
-  nut:    { rot:[0,0,Math.PI/2], axis:'d', target:1.54, mat:()=>M.steel()     }, // 螺母:外六角对齐螺栓头部尺寸
+  nut:    { rot:[0,0,Math.PI/2], axis:'d', target:1.69, mat:()=>M.steel()     }, // 螺母:外六角对齐螺栓头部尺寸
   flat:   { rot:[0,0,0],         axis:'d', target:2.10, mat:()=>M.steelDark() }, // 平垫:朝向已对,按外径
   spring: { rot:[0,0,Math.PI/2], axis:'d', target:2.04, mat:()=>M.steel()     }, // 弹簧:孔轴X→绕Z转90°,按外径
   serr:   { rot:[0,0,0],         axis:'d', target:2.16, mat:()=>M.zinc()      }, // 锯齿:朝向已对,按外径
