@@ -613,7 +613,8 @@ function animate(){
       if(autoTimer>3){ autoTimer=0; STATE.asmStep=(STATE.asmStep>=4)?0:STATE.asmStep+1; } }
     // 逐级装配:asmStepProg 平滑逼近 asmStep(0空~5满)
     const beforeSP=STATE.asmStepProg;
-    STATE.asmStepProg+=(STATE.asmStep-STATE.asmStepProg)*Math.min(1,dt*4);
+    const asmRate = STATE.asmStep >= STATE.asmStepProg ? 4 : 2.2;
+    STATE.asmStepProg+=(STATE.asmStep-STATE.asmStepProg)*Math.min(1,dt*asmRate);
     const moving=Math.abs(STATE.asmStepProg-beforeSP)>.003;
     for(const part of STACK){
       const u=part.userData; if(u.lift===0) continue;       // 骨架螺栓固定
