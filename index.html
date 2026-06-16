@@ -280,8 +280,8 @@ const MODEL_PATHS = {
   bolt:   'models/optimized_fast/hex_bolt.glb?v=hex-head-plus-20260616',
   nut:    'models/optimized_fast/hex_nut.glb?v=nut-outer-fit-20260616',
   flat:   'models/optimized_fast/flat_washer.glb',
-  spring: 'models/optimized_fast/spring_washer.glb?v=washer-bore-fit-20260616',
-  serr:   'models/optimized_fast/serrated_washer.glb?v=washer-bore-fit-20260616',
+  spring: 'models/optimized_fast/spring_washer.glb?v=washer-size-bore-fit-20260616',
+  serr:   'models/optimized_fast/serrated_washer.glb?v=washer-size-bore-fit-20260616',
 };
 // rot   : 施加到内层的欧拉旋转,把 GLB 朝向对齐到"轴线=Y"
 // axis  : 缩放基准维度 'y'(全高) 或 'd'(横向最大直径)
@@ -292,8 +292,8 @@ const MODEL_NORM = {
   bolt:   { rot:[0,0,0],         axis:'y', target:4.8,  mat:()=>M.steel()     }, // 螺栓:头朝下,与原版一致,按全高
   nut:    { rot:[0,0,Math.PI/2], axis:'d', target:1.69, mat:()=>M.steel()     }, // 螺母:外六角对齐螺栓头部尺寸
   flat:   { rot:[0,0,0],         axis:'d', target:2.10, mat:()=>M.steelDark() }, // 平垫:朝向已对,按外径
-  spring: { rot:[0,0,Math.PI/2], axis:'d', target:1.84, mat:()=>M.steel()     }, // 弹簧:孔轴X→绕Z转90°,按外径
-  serr:   { rot:[0,0,0],         axis:'d', target:1.94, mat:()=>M.zinc()      }, // 锯齿:朝向已对,按外径
+  spring: { rot:[0,0,Math.PI/2], axis:'d', target:1.74, mat:()=>M.steel()     }, // 弹簧:孔轴X→绕Z转90°,按外径
+  serr:   { rot:[0,0,0],         axis:'d', target:1.82, mat:()=>M.zinc()      }, // 锯齿:朝向已对,按外径
 };
 
 function disposeMaterial(m){
